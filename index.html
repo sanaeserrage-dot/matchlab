@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>MatchLab — تحليل المباريات</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{color-scheme:dark;--bg:#08111f;--panel:#111d30;--panel2:#17253b;--line:#263852;--txt:#edf4ff;--muted:#9eb0c8;--green:#42d392;--blue:#69a8ff;--amber:#ffc56a;--red:#ff7e86}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#142844 0,#08111f 55%);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,Arial,sans-serif;min-height:100vh}
+header{padding:calc(18px + env(safe-area-inset-top)) 18px 16px;position:sticky;top:0;background:#08111fee;backdrop-filter:blur(14px);z-index:5;border-bottom:1px solid var(--line)}
+.brand{display:flex;justify-content:space-between;align-items:center}.brand h1{font-size:22px;margin:0;font-weight:850;letter-spacing:.2px}.brand small{color:var(--green);font-weight:700}
+main{max-width:900px;margin:auto;padding:16px 14px calc(40px + env(safe-area-inset-bottom))}
+.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}
+button,input,select{font:inherit;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;min-height:44px}
+button{cursor:pointer;font-weight:700}button.primary{background:linear-gradient(120deg,#176c56,#14865e);border:0}button:disabled{opacity:.55}
+input[type=date]{width:100%}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.stat,.card,.analysis{background:linear-gradient(145deg,#14243a,#101b2c);border:1px solid var(--line);border-radius:16px;padding:13px}.stat b{font-size:21px;display:block}.stat span,.muted{color:var(--muted);font-size:12px}
+.sectionhead{display:flex;justify-content:space-between;align-items:center;margin:20px 2px 10px}.sectionhead h2{font-size:16px;margin:0}.league{margin:14px 0 7px;color:#a9c6eb;font-size:13px;font-weight:800}
+.match{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:13px 12px;margin:7px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;cursor:pointer}
+.teams{flex:1;min-width:0}.team{font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.score{font-weight:900;font-size:18px;white-space:nowrap}.time{font-size:11px;color:var(--muted);white-space:nowrap}.tag{font-size:10px;border-radius:20px;padding:4px 7px;background:#20344d;color:#b9d5f5}
+#status{color:var(--muted);font-size:12px;margin:10px 2px}.analysis{margin-top:14px;padding:16px}.analysis h2{margin:0 0 5px;font-size:19px}.analysis h3{font-size:14px;margin:18px 0 9px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}.metric{background:#0b1728;border:1px solid var(--line);padding:11px;border-radius:12px}.metric span{display:block;color:var(--muted);font-size:11px}.metric b{font-size:19px;display:block;margin-top:4px}.bar{height:8px;background:#26364d;border-radius:20px;overflow:hidden;margin-top:7px}.bar i{display:block;height:100%;background:linear-gradient(90deg,#4aa5ff,#45d39a);border-radius:20px}
+.note{font-size:12px;color:var(--muted);line-height:1.7;background:#0b1728;border-radius:12px;padding:11px;margin-top:12px}.formrow{display:flex;gap:8px;align-items:center}.formrow>*{flex:1}.empty{text-align:center;color:var(--muted);padding:30px 10px}.footer{font-size:11px;color:#8194ae;text-align:center;margin:26px 8px}
+a{color:#8dbdff}.hidden{display:none!important}
+@media(min-width:650px){.toolbar{grid-template-columns:1fr 1fr 1fr}.matches{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}.analysis{padding:20px}}
+</style></head>
+<body>
+<header><div class="brand"><div><h1>⚽ MatchLab</h1><small>SMART FOOTBALL ANALYSIS</small></div><span class="tag">NO API KEY</span></div></header>
+<main>
+<div class="toolbar">
+<input id="date" type="date" aria-label="تاريخ المباريات">
+<select id="region"><option value="all">جميع المسابقات المتاحة</option><option value="top">الدوريات الكبرى</option><option value="europe">أوروبا</option><option value="international">منتخبات وقارية</option></select>
+<button id="refresh" class="primary">↻ تحديث المباريات</button>
+</div>
+<div class="stats">
+<div class="stat"><b id="count">—</b><span>مباراة معروضة</span></div>
+<div class="stat"><b id="live">—</b><span>مباشرة</span></div>
+<div class="stat"><b id="leaguesCount">—</b><span>مسابقة تم فحصها</span></div>
+</div>
+<div id="status">اضغط على تحديث المباريات لجلب جدول اليوم.</div>
+<div class="sectionhead"><h2>المباريات</h2><span class="muted">اضغط على أي مباراة للتحليل</span></div>
+<div id="matches"></div>
+<div id="analysis" class="analysis hidden"></div>
+<div class="footer">مصدر النتائج: ESPN public endpoints. البيانات قد تختلف حسب تغطية المسابقة. التوقعات احتمالية وليست ضماناً للنتيجة أو نصيحة للمراهنة.</div>
+</main>
+<script>
+const LEAGUES = [
+["eng.1","إنجلترا — Premier League","top"],["eng.2","إنجلترا — Championship","europe"],
+["esp.1","إسبانيا — LaLiga","top"],["esp.2","إسبانيا — Segunda","europe"],
+["ita.1","إيطاليا — Serie A","top"],["ita.2","إيطاليا — Serie B","europe"],
+["ger.1","ألمانيا — Bundesliga","top"],["ger.2","ألمانيا — 2. Bundesliga","europe"],
+["fra.1","فرنسا — Ligue 1","top"],["fra.2","فرنسا — Ligue 2","europe"],
+["uefa.champions","UEFA Champions League","top"],["uefa.europa","UEFA Europa League","europe"],
+["uefa.europa.conf","UEFA Conference League","europe"],["ned.1","هولندا — Eredivisie","europe"],
+["por.1","البرتغال — Primeira Liga","europe"],["bel.1","بلجيكا — Pro League","europe"],
+["sco.1","اسكتلندا — Premiership","europe"],["tur.1","تركيا — Süper Lig","europe"],
+["usa.1","الولايات المتحدة — MLS","europe"],["mex.1","المكسيك — Liga MX","europe"],
+["bra.1","البرازيل — Série A","europe"],["arg.1","الأرجنتين — Liga Profesional","europe"],
+["ksa.1","السعودية — Pro League","europe"],["jpn.1","اليابان — J League","europe"],
+["aus.1","أستراليا — A-League","europe"],["mar.1","المغرب — Botola Pro","europe"],
+["fifa.world","كأس العالم","international"],["fifa.wwc","كأس العالم للسيدات","international"],
+["uefa.euro","UEFA Euro","international"],["caf.nations","كأس أمم إفريقيا","international"],
+["afc.asian","كأس آسيا","international"],["concacaf.gold","Gold Cup","international"],
+["conmebol.america","Copa América","international"],["uefa.nations","UEFA Nations League","international"]
+];
+const $=id=>document.getElementById(id);
+const dateKey=d=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+function shiftDate(date,days){const d=new Date(date+"T12:00:00");d.setDate(d.getDate()+days);return d;}
+const localDate=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
+$("date").value=localDate();
+let allEvents=[];
+const base="https://site.api.espn.com/apis/site/v2/sports/soccer/";
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function statusText(e){let s=e.status?.type;return s?.shortDetail||s?.detail||s?.description||"—"}
+function getTeams(e){let c=e.competitions?.[0]?.competitors||[];let h=c.find(x=>x.homeAway==="home")||c[0],a=c.find(x=>x.homeAway==="away")||c[1];return {h,a}}
+function fmtTime(iso){try{return new Date(iso).toLocaleTimeString("ar-MA",{hour:"2-digit",minute:"2-digit"})}catch{return ""}}
+async function fetchLeague(code,start,end){
+ const url=base+code+"/scoreboard?dates="+start+"-"+end+"&limit=100";
+ const r=await fetch(url,{cache:"no-store"});
+ if(!r.ok)throw Error("HTTP "+r.status+" for "+code);
+ const data=await r.json();
+ if(!data || !Array.isArray(data.events))throw Error("Unexpected ESPN response for "+code);
+ return data;
+}
+async function load(){
+ const btn=$("refresh");btn.disabled=true;$("status").textContent="كنقلب على المباريات فالمسابقات المتاحة…";
+ $("matches").innerHTML="";$("analysis").classList.add("hidden");
+ const filter=$("region").value, list=LEAGUES.filter(x=>filter==="all"||filter==="top"&&x[2]==="top"||filter==="europe"&&x[2]!=="international"||filter==="international"&&x[2]==="international");
+ const selected=$("date").value||localDate();
+ // Fetch a 7-day window so a quiet matchday does not look like a broken app.
+ const start=dateKey(shiftDate(selected,-1)), end=dateKey(shiftDate(selected,6));
+ let results=await Promise.allSettled(list.map(async l=>({league:l,data:await fetchLeague(l[0],start,end)})));
+ allEvents=[];let ok=0,failed=0;
+ results.forEach((r,i)=>{if(r.status==="fulfilled"){ok++;let events=r.value.data.events||[];events.forEach(e=>allEvents.push({...e,_league:r.value.league}));}else failed++});
+ allEvents.sort((a,b)=>new Date(a.date)-new Date(b.date));
+ $("count").textContent=allEvents.length;$("live").textContent=allEvents.filter(e=>e.status?.type?.state==="in").length;$("leaguesCount").textContent=ok;
+ $("status").textContent=`تم فحص ${ok} مسابقة${failed?`؛ تعذر الوصول إلى ${failed}`:""}. عرض مباريات من ${selected} إلى ${shiftDate(selected,6).toLocaleDateString("ar-MA")} (نافذة 7 أيام). عدد المباريات: ${allEvents.length}.`;
+ render();btn.disabled=false;
+}
+function render(){
+ const host=$("matches");host.innerHTML="";
+ if(!allEvents.length){host.innerHTML='<div class="empty">ما رجعات حتى مباراة فنافذة البحث.<br>ممكن ما كايناش مباريات مبرمجة، أو بعض المسابقات ما متاحةش عند ESPN. جرّب تحديث الصفحة أو اختار تاريخ آخر.</div>';return}
+ let current="";
+ allEvents.forEach((e,i)=>{
+  const league=e._league?.[1]||"مسابقة";if(league!==current){current=league;let h=document.createElement("div");h.className="league";h.textContent=league;host.append(h)}
+  const {h,a}=getTeams(e);if(!h||!a)return;
+  const state=e.status?.type?.state,score=(h.score!==undefined&&a.score!==undefined)?`${h.score} - ${a.score}`:fmtTime(e.date);
+  const div=document.createElement("div");div.className="match";
+  const matchDate=new Date(e.date);
+  const dateLabel=matchDate.toLocaleDateString("ar-MA",{day:"numeric",month:"short"});
+  const timeLabel=matchDate.toLocaleTimeString("ar-MA",{hour:"2-digit",minute:"2-digit"});
+  div.innerHTML=`<div class="teams"><div class="team">${esc(a.team?.displayName)}</div><div class="team">${esc(h.team?.displayName)}</div><div class="time">${esc(dateLabel)} · ${esc(timeLabel)} · ${esc(statusText(e))}</div></div><div class="score">${esc(score)}</div><span class="tag">${state==="in"?"مباشر":state==="post"?"انتهت":"تحليل"}</span>`;
+  div.onclick=()=>analyze(e);host.append(div);
+ });
+}
+function poisson(l,k){let p=Math.exp(-l),v=p;for(let i=1;i<=k;i++)v*=l/i;return v}
+function probs(lh,la){let h=0,d=0,a=0,o25=0,btts=0,correct=[];for(let i=0;i<=7;i++)for(let j=0;j<=7;j++){let p=poisson(lh,i)*poisson(la,j);if(i>j)h+=p;else if(i===j)d+=p;else a+=p;if(i+j>=3)o25+=p;if(i>0&&j>0)btts+=p;correct.push({i,j,p})}correct.sort((x,y)=>y.p-x.p);return {h,d,a,o25,btts,correct:correct[0]}}
+async function teamForm(league,id){
+ const url=base+encodeURIComponent(league)+"/teams/"+encodeURIComponent(id)+"/schedule";
+ const r=await fetch(url);if(!r.ok)throw Error("schedule unavailable");const data=await r.json();
+ let ev=data.events||data.team?.events||[];
+ let rows=ev.map(e=>{let c=e.competitions?.[0]?.competitors||[];let me=c.find(x=>String(x.id)===String(id)||String(x.team?.id)===String(id));let op=c.find(x=>x!==me);if(!me||!op||me.score==null||op.score==null)return null;let state=e.status?.type?.state;if(state!=="post")return null;return {gf:Number(me.score),ga:Number(op.score),date:e.date,home:me.homeAway==="home"}}).filter(Boolean).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,8);
+ if(!rows.length)throw Error("no recent results");return rows;
+}
+function avg(a,k){return a.reduce((s,x)=>s+x[k],0)/(a.length||1)}
+function pct(x){return Math.round(x*100)+"%"}
+function metric(label,value,bar){return `<div class="metric"><span>${label}</span><b>${value}</b>${bar!==undefined?`<div class="bar"><i style="width:${Math.max(0,Math.min(100,bar))}%"></i></div>`:""}</div>`}
+async function analyze(e){
+ const box=$("analysis");box.classList.remove("hidden");box.innerHTML='<div class="muted">كنجيب آخر النتائج ديال الفريقين ونحسب المؤشرات…</div>';box.scrollIntoView({behavior:"smooth",block:"start"});
+ const {h,a}=getTeams(e),league=e._league[0],home=h.team?.displayName,away=a.team?.displayName;
+ try{
+  const [hf,af]=await Promise.all([teamForm(league,h.id||h.team?.id),teamForm(league,a.id||a.team?.id)]);
+  const hGF=avg(hf,"gf"),hGA=avg(hf,"ga"),aGF=avg(af,"gf"),aGA=avg(af,"ga");
+  const leagueMean=Math.max(1.05,(hGF+hGA+aGF+aGA)/4);
+  // Conservative blend of each side's attack and opponent's concession, with modest home advantage.
+  const lh=Math.max(.15,Math.min(4,(.55*hGF+.45*aGA)*1.08));
+  const la=Math.max(.15,Math.min(4,(.55*aGF+.45*hGA)*.94));
+  const p=probs(lh,la),best=p.h>=p.d&&p.h>=p.a?home:p.a>=p.d?away:"التعادل";
+  const top=p.correct;
+  const conf=Math.round(Math.max(p.h,p.d,p.a)*100);
+  const formLine=(rows)=>rows.map(x=>x.gf>x.ga?"ف":x.gf===x.ga?"ت":"خ").join(" · ");
+  box.innerHTML=`<h2>${esc(home)} <span class="muted">ضد</span> ${esc(away)}</h2><div class="muted">${esc(e._league[1])} · ${esc(statusText(e))}</div>
+  <h3>النتائج الأخيرة — آخر ${Math.min(hf.length,af.length)} مباريات متاحة</h3>
+  <div class="grid2">${metric(esc(home),`${hGF.toFixed(2)} هدف / ${hGA.toFixed(2)} مستقبَل`,Math.min(100,hGF*20))}${metric(esc(away),`${aGF.toFixed(2)} هدف / ${aGA.toFixed(2)} مستقبَل`,Math.min(100,aGF*20))}</div>
+  <div class="note"><b>الفورمة:</b><br>${esc(home)}: ${formLine(hf)}<br>${esc(away)}: ${formLine(af)}</div>
+  <h3>الاحتمالات الإحصائية</h3><div class="grid2">
+  ${metric("فوز "+esc(home),pct(p.h),p.h*100)}${metric("التعادل",pct(p.d),p.d*100)}
+  ${metric("فوز "+esc(away),pct(p.a),p.a*100)}${metric("أكثر من 2.5 هدف",pct(p.o25),p.o25*100)}
+  ${metric("الفريقان يسجلان",pct(p.btts),p.btts*100)}${metric("أقل من 2.5 هدف",pct(1-p.o25),(1-p.o25)*100)}
+  </div><h3>الخلاصة النموذجية</h3><div class="grid2">${metric("النتيجة الأكثر احتمالاً",`${top.i} - ${top.j}`)}${metric("الاختيار الأعلى احتمالاً",best)}${metric("قوة أعلى احتمال 1X2",conf+"%")}${metric("الأهداف المتوقعة",`${lh.toFixed(2)} - ${la.toFixed(2)}`)}</div>
+  <div class="note">المنهج: متوسط تسجيل واستقبال آخر 8 مباريات متاحة، مع تعديل بسيط لأفضلية الأرض، ثم توزيع Poisson لتقدير النتائج. هذا نموذج مبسط وليس xG حقيقياً ولا يأخذ كل الإصابات أو التشكيلات أو جودة الخصوم بعين الاعتبار. النسب تقديرات نموذجية وقد لا تجمع بدقة إلى 100% بسبب حدّ الأهداف المستخدم.</div>
+  <button style="width:100%;margin-top:12px" onclick="document.getElementById('analysis').classList.add('hidden')">إغلاق التحليل</button>`;
+ }catch(err){
+  box.innerHTML=`<h2>${esc(home)} ضد ${esc(away)}</h2><p>المباراة موجودة، لكن ما قدرناش نجيبو سجل النتائج السابق من المصدر لهاد الفريق/المسابقة.</p><div class="note">السبب المحتمل: تغطية محدودة أو عدم توفر جدول الفريق. ما غاديش نخترعو توقعات بلا بيانات كافية.</div><button style="width:100%;margin-top:12px" onclick="document.getElementById('analysis').classList.add('hidden')">إغلاق</button>`;
+ }
+}
+$("refresh").addEventListener("click",load);$("region").addEventListener("change",load);$("date").addEventListener("change",load);
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
+load();
+</script></body></html>
